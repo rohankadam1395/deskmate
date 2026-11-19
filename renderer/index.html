@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Desktop buddy spike</title>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  #box { position: absolute; left: 0; top: 200px; width: 96px; height: 96px; border-radius: 24px;
+         background: #ff9f1c; color: #222; font: bold 14px sans-serif; display: grid; place-items: center;
+         user-select: none; cursor: pointer; }
+</style>
+<div id="box">0 clicks</div>
+<script>
+  const box = document.getElementById('box');
+  let clicks = 0, x = 0, dir = 1;
+  box.addEventListener('click', () => { box.textContent = `${++clicks} clicks`; });
+  setInterval(() => {
+    x += dir * 3;
+    if (x > innerWidth - 96 || x < 0) dir = -dir;
+    box.style.transform = `translateX(${x}px)`;
+    const r = box.getBoundingClientRect();
+    window.__TAURI__.core.invoke('set_hit_rects', { rects: [{ x: r.x, y: r.y, w: r.width, h: r.height }] });
+  }, 33);
+</script>
