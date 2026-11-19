@@ -25,7 +25,13 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$DATA/desktop-buddy/**"
+        ]
+      }
     },
     "withGlobalTauri": true
   },
@@ -41,6 +47,9 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "resources": {
+      "../defaults/": "defaults/"
     }
   }
 }
