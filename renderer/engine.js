@@ -22,6 +22,14 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
   const timers = new Map();
   let active = null; // { id, shownAt, escCount }
   let paused = null; // { since: ms, until: ms|null }
+  // ambient: random 8-25 s between gestures; walking blocks picks until walkDone()
+  let ambientNext = 0;
+  let walking = false;
+  let lastAmbient = null;
+  let quietSlept = false;
+  const WALK_WEIGHT = 4;
+  const restAmbient = (t) => { ambientNext = t + (8 + rand() * 17) * 1000; };
+  restAmbient(now());
 
   const schedule = (r, from) => ({ nextDue: from + r.everyMinutes * MIN, pendingSince: null, dueAt: 0 });
   const syncTimers = (t) => {
@@ -64,6 +72,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
         s.pendingSince = null;
         s.nextDue = t + r.everyMinutes * MIN; // restarted again by ack/snooze
         active = { id, shownAt: t, escCount: 0 };
+        walking = true; // renderer must call walkDone() for every walk action
         actions.push({ type: 'walk' });
         actions.push({
           type: 'say',
@@ -76,6 +85,24 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
     }
   }
 
+  function tickAmbient(t, actions) {
+    if (inQuietHours(cfg.quietHours, new Date(t))) {
+      if (!quietSlept) { quietSlept = true; actions.push({ type: 'gesture', name: resolveGesture(av, 'sleep') }); }
+      return;
+    }
+    quietSlept = false;
+    if (walking || t < ambientNext) return;
+    let opts = [...Object.entries(av.ambient), ['walk', WALK_WEIGHT]].filter(([, w]) => w > 0);
+    const others = opts.filter(([n]) => n !== lastAmbient);
+    if (others.length) opts = others;
+    let r = rand() * opts.reduce((a, [, w]) => a + w, 0);
+    const [name] = opts.find(([, w]) => (r -= w) < 0) ?? opts[opts.length - 1];
+    lastAmbient = name;
+    restAmbient(t);
+    if (name === 'walk') { walking = true; actions.push({ type: 'walk' }); }
+    else actions.push({ type: 'gesture', name: resolveGesture(av, name) });
+  }
+
   function tickActive(t, actions) {
     const r = reminder(active.id);
     if (!r) { active = null; return; } // removed from config while showing
@@ -85,6 +112,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
     if (dt >= esc.giveUpAfterSeconds * 1000) {
       timers.set(r.id, schedule(r, t));
       active = null;
+      restAmbient(t);
       actions.push({ type: 'hideBubble' });
       if (r.escalate) actions.push({ type: 'gesture', name: resolveGesture(av, 'sleep') });
       return;
@@ -114,6 +142,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
     const r = reminder(active.id);
     timers.set(r.id, schedule(r, now()));
     active = null;
+    restAmbient(now());
     return [{ type: 'hideBubble' }, { type: 'gesture', name: resolveGesture(av, 'happy') }];
   };
 
@@ -122,8 +151,10 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
       const t = now();
       if (paused) return paused.until !== null && t >= paused.until ? resume() : [];
       const actions = [];
-      if (active) tickActive(t, actions);
+      const hadActive = active !== null;
+      if (hadActive) tickActive(t, actions);
       tickReminders(t, actions);
+      if (!hadActive && !active && actions.length === 0) tickAmbient(t, actions);
       return actions;
     },
     ack,
@@ -134,6 +165,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
       s.nextDue = now() + r.snoozeMinutes * MIN;
       timers.set(r.id, s);
       active = null;
+      restAmbient(now());
       return [{ type: 'hideBubble' }];
     },
     click() {
@@ -155,6 +187,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
       return out;
     },
     resume() { return paused ? resume() : []; },
+    walkDone() { walking = false; restAmbient(now()); },
     setConfig(c) { cfg = c; syncTimers(now()); },
     setAvatar(a) { av = a; },
   };
