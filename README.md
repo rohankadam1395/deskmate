@@ -1,4 +1,4 @@
-# Desktop buddy
+# Deskmate
 
 A small animated companion that wanders over your Windows desktop and nudges you to drink water, move, blink and look away from the screen.
 

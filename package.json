@@ -1,4 +1,5 @@
 {
+  "name": "deskmate",
   "type": "module",
   "scripts": { "test": "node --test" }
 }

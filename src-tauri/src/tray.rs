@@ -31,7 +31,7 @@ pub fn build(app: &AppHandle, avatars: &[String], config_path: std::path::PathBu
     let autostart_item = autostart.clone();
     TrayIconBuilder::new()
         .icon(app.default_window_icon().cloned().expect("window icon"))
-        .tooltip("Desktop buddy")
+        .tooltip("Deskmate")
         .menu(&menu)
         .on_menu_event(move |app, event| {
             let id = event.id.as_ref();

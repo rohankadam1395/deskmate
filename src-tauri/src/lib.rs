@@ -124,5 +124,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running desktop buddy");
+        .expect("error while running deskmate");
 }

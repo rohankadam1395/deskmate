@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "desktop-buddy",
+  "productName": "deskmate",
   "version": "0.1.0",
-  "identifier": "com.desktopbuddy.app",
+  "identifier": "com.deskmate.app",
   "build": {
     "frontendDist": "../renderer"
   },
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Desktop buddy",
+        "title": "Deskmate",
         "width": 800,
         "height": 600,
         "transparent": true,
