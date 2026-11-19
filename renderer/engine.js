@@ -20,7 +20,8 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
   let av = avatar;
   // id -> { nextDue: ms, pendingSince: ms|null, dueAt: ms }
   const timers = new Map();
-  let active = null; // { id }
+  let active = null; // { id, shownAt, escCount }
+  let paused = null; // { since: ms, until: ms|null }
 
   const schedule = (r, from) => ({ nextDue: from + r.everyMinutes * MIN, pendingSince: null, dueAt: 0 });
   const syncTimers = (t) => {
@@ -62,7 +63,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
         const r = reminder(id);
         s.pendingSince = null;
         s.nextDue = t + r.everyMinutes * MIN; // restarted again by ack/snooze
-        active = { id };
+        active = { id, shownAt: t, escCount: 0 };
         actions.push({ type: 'walk' });
         actions.push({
           type: 'say',
@@ -75,20 +76,85 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
     }
   }
 
+  function tickActive(t, actions) {
+    const r = reminder(active.id);
+    if (!r) { active = null; return; } // removed from config while showing
+    const dt = t - active.shownAt;
+    // escalate: null (escalate:false) never re-says, but still gives up at the default 180 s
+    const esc = r.escalate ?? { afterSeconds: Infinity, gestures: [], giveUpAfterSeconds: 180 };
+    if (dt >= esc.giveUpAfterSeconds * 1000) {
+      timers.set(r.id, schedule(r, t));
+      active = null;
+      actions.push({ type: 'hideBubble' });
+      if (r.escalate) actions.push({ type: 'gesture', name: resolveGesture(av, 'sleep') });
+      return;
+    }
+    const n = Math.floor(dt / (esc.afterSeconds * 1000));
+    if (n > active.escCount) {
+      active.escCount = n;
+      const g = esc.gestures[(n - 1) % esc.gestures.length] ?? r.gesture;
+      actions.push({ type: 'say', reminderId: r.id, text: pickMessage(r, av.id, rand), gesture: resolveGesture(av, g) });
+    }
+  }
+
+  function resume() {
+    const t = now();
+    const d = t - paused.since;
+    for (const s of timers.values()) {
+      s.nextDue += d;
+      s.dueAt += d;
+      if (s.pendingSince !== null) s.pendingSince += d;
+    }
+    paused = null;
+    return [{ type: 'show' }];
+  }
+
+  const ack = () => {
+    if (!active) return [];
+    const r = reminder(active.id);
+    timers.set(r.id, schedule(r, now()));
+    active = null;
+    return [{ type: 'hideBubble' }, { type: 'gesture', name: resolveGesture(av, 'happy') }];
+  };
+
   return {
     tick() {
+      const t = now();
+      if (paused) return paused.until !== null && t >= paused.until ? resume() : [];
       const actions = [];
-      tickReminders(now(), actions);
+      if (active) tickActive(t, actions);
+      tickReminders(t, actions);
       return actions;
     },
-    // Minimal ack (completed in Task 4): resolves the active reminder and restarts its timer.
-    ack() {
+    ack,
+    snooze() {
       if (!active) return [];
       const r = reminder(active.id);
-      timers.set(r.id, schedule(r, now()));
+      const s = schedule(r, now());
+      s.nextDue = now() + r.snoozeMinutes * MIN;
+      timers.set(r.id, s);
       active = null;
       return [{ type: 'hideBubble' }];
     },
+    click() {
+      if (active) return ack();
+      const pool = ['smirk', 'happy'].filter((g) => av.states.includes(g));
+      const name = pool.length ? pool[Math.floor(rand() * pool.length)] : 'idle';
+      return [{ type: 'gesture', name }];
+    },
+    pause(minutes) {
+      if (paused) return [];
+      const t = now();
+      paused = { since: t, until: minutes === null ? null : t + minutes * MIN };
+      const out = [{ type: 'hide' }];
+      if (active) { // drop the shown reminder; it restarts a full interval after resume
+        timers.set(active.id, schedule(reminder(active.id), t));
+        active = null;
+        out.unshift({ type: 'hideBubble' });
+      }
+      return out;
+    },
+    resume() { return paused ? resume() : []; },
     setConfig(c) { cfg = c; syncTimers(now()); },
     setAvatar(a) { av = a; },
   };

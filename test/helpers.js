@@ -1,7 +1,7 @@
 import { normalizeConfig } from '../renderer/config.js';
 import { createEngine } from '../renderer/engine.js';
 
-export const rem = (o = {}) => ({ id: 'water', everyMinutes: 45, gesture: 'demand', messages: ['hi'], ...o });
+export const rem = (o = {}) => ({ id: 'water', everyMinutes: 45, gesture: 'demand', messages: ['hi'], escalate: false, ...o });
 
 export const AVATAR = {
   id: 'cat',
