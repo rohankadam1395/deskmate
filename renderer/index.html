@@ -1,29 +1,17 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Desktop buddy spike</title>
+<title>Desktop buddy</title>
 <style>
   html, body { margin: 0; background: transparent; overflow: hidden; }
-  #box { word-break: break-all; padding: 4px; box-sizing: border-box; position: absolute; left: 0; top: 200px; width: 96px; height: 96px; border-radius: 24px;
-         background: #ff9f1c; color: #222; font: bold 14px sans-serif; display: grid; place-items: center;
-         user-select: none; cursor: pointer; }
+  #buddy { position: absolute; left: 0; top: 0; cursor: pointer; user-select: none; }
+  #bubble { position: absolute; max-width: 260px; padding: 10px 12px; border-radius: 14px;
+            background: #fff; color: #222; font: 14px/1.35 "Segoe UI", sans-serif;
+            box-shadow: 0 2px 10px rgba(0,0,0,.3); user-select: none; }
+  #bubble .buttons { display: flex; gap: 8px; margin-top: 8px; }
+  #bubble .buttons:empty { display: none; }
+  #bubble button { border: 0; border-radius: 8px; padding: 4px 12px; font: inherit; cursor: pointer;
+                   background: #ff9f1c; color: #222; }
+  #bubble button + button { background: #e6e6ea; }
 </style>
-<div id="box">0 clicks</div>
-<script>
-  const box = document.getElementById('box');
-  let clicks = 0, x = 0, dir = 1;
-  box.addEventListener('click', () => { show(`${++clicks} clicks`); });
-  // Task 7 verification only (replaced in Task 8): show shell events and idle time.
-  const T = window.__TAURI__;
-  let label = '';
-  const show = (t) => { label = t; box.textContent = t; };
-  T.event.listen('tray', (e) => show(JSON.stringify(e.payload)));
-  T.event.listen('config-changed', () => show('config-changed'));
-  setInterval(async () => { if (!label) box.textContent = `idle ${(await T.core.invoke('idle_seconds')).toFixed(0)}s`; }, 1000);
-  setInterval(() => {
-    x += dir * 3;
-    if (x > innerWidth - 96 || x < 0) dir = -dir;
-    box.style.transform = `translateX(${x}px)`;
-    const r = box.getBoundingClientRect();
-    window.__TAURI__.core.invoke('set_hit_rects', { rects: [{ x: r.x, y: r.y, w: r.width, h: r.height }] });
-  }, 33);
-</script>
+<div id="buddy"></div>
+<script type="module" src="main.js"></script>
