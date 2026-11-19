@@ -10,7 +10,7 @@ export const AVATAR = {
 };
 
 // Fake-clock engine. rand is constant 0 unless overridden.
-export function setup(rawConfig, { start = new Date(2026, 0, 1, 12, 0), idle = 0, rand = () => 0, avatar = AVATAR } = {}) {
+export function setup(rawConfig, { start = new Date(2026, 0, 1, 12, 0), idle = 0, rand = () => 0, avatar = AVATAR, autoWalk = false } = {}) {
   let t = start.getTime();
   let idleS = idle;
   const { config } = normalizeConfig(rawConfig);
@@ -23,7 +23,13 @@ export function setup(rawConfig, { start = new Date(2026, 0, 1, 12, 0), idle = 0
     // advance `sec` seconds one tick at a time, collecting every action
     run(sec) {
       const out = [];
-      for (let i = 0; i < sec; i++) { t += 1000; out.push(...engine.tick()); }
+      for (let i = 0; i < sec; i++) {
+        t += 1000;
+        const a = engine.tick();
+        out.push(...a);
+        // autoWalk mimics a renderer that finishes every walk straight away
+        if (autoWalk && a.some((x) => x.type === 'walk')) engine.walkDone();
+      }
       return out;
     },
   };

@@ -20,6 +20,7 @@ let hidden = false;
 let walking = false;
 let pendingGesture = null;
 let pos = { x: 0, y: 0 };
+let lastTickError = '';
 
 const avatarUrl = (id, file) => convertFileSrc(`${dataDir}\\avatars\\${id}\\${file}`);
 const forEngine = (a) => ({ id: a.id, states: Object.keys(a.states), ambient: a.ambient });
@@ -56,12 +57,15 @@ function home() {
 }
 
 // ---- walking ----
+let walkId = 0;
 function walkTo(tx) {
+  const my = ++walkId; // a newer walk supersedes older loops, so two can never fight over the position
   walking = true;
   sprite.face(tx >= pos.x ? 'right' : 'left');
   sprite.play('walk');
   let last = performance.now();
   const step = (now) => {
+    if (my !== walkId) return;
     const dt = (now - last) / 1000;
     last = now;
     const dx = tx - pos.x;
@@ -110,12 +114,14 @@ async function switchAvatar(id) {
 }
 
 async function reloadConfig() {
+  const prevAvatar = config?.avatar;
   const res = loadConfigText(await invoke('read_config'), config);
   config = res.config;
   if (res.errors.length) notice(`Config problem: ${res.errors[0]}`);
   if (!engine) return;
   engine.setConfig(config);
-  if (config.avatar && config.avatar !== avatar.id) await switchAvatar(config.avatar);
+  // Only react when the file's avatar setting changed, so a tray choice survives unrelated edits.
+  if (config.avatar && config.avatar !== prevAvatar && config.avatar !== avatar.id) await switchAvatar(config.avatar);
 }
 
 async function start() {
@@ -145,7 +151,12 @@ async function start() {
   });
   setInterval(async () => {
     idle = await invoke('idle_seconds');
-    apply(engine.tick());
+    try {
+      apply(engine.tick());
+    } catch (e) {
+      if (e.message !== lastTickError) notice(`Something went wrong: ${e.message}`);
+      lastTickError = e.message;
+    }
   }, 1000);
 }
 

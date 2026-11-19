@@ -21,8 +21,16 @@ export function normalizeConfig(raw) {
     else escalate = { afterSeconds: 60, gestures: [gesture], giveUpAfterSeconds: 180, ...(r.escalate ?? {}) };
     reminders.push({ ...r, gesture, snoozeMinutes: r.snoozeMinutes ?? 10, escalate });
   }
+  const hhmm = /^\d{1,2}:\d{2}$/;
+  let quietHours = raw.quietHours;
+  if (quietHours !== undefined && !(hhmm.test(quietHours?.from) && hhmm.test(quietHours?.to))) {
+    errors.push('quietHours ignored: expected {"from": "HH:MM", "to": "HH:MM"}');
+    quietHours = null;
+  }
   const config = {
     ...raw,
+    quietHours,
+    reminderGapSeconds: raw.reminderGapSeconds ?? 60,
     politeIdleSeconds: raw.politeIdleSeconds ?? 5,
     politeMaxWaitSeconds: raw.politeMaxWaitSeconds ?? 120,
     idleResetMinutes: raw.idleResetMinutes ?? 5,
@@ -33,7 +41,9 @@ export function normalizeConfig(raw) {
 
 export function pickMessage(reminder, avatarId, rand) {
   const m = reminder.messages;
-  const list = Array.isArray(m) ? m : (m[avatarId]?.length ? m[avatarId] : m.default ?? []);
+  const list = Array.isArray(m)
+    ? m
+    : (m[avatarId]?.length ? m[avatarId] : m.default?.length ? m.default : Object.values(m).find((a) => a?.length) ?? []);
   return list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
 }
 

@@ -21,6 +21,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
   // id -> { nextDue: ms, pendingSince: ms|null, dueAt: ms }
   const timers = new Map();
   let active = null; // { id, shownAt, escCount }
+  let gapUntil = 0; // no reminder may start before this (spacing after one resolves)
   let paused = null; // { since: ms, until: ms|null }
   // ambient: random 8-25 s between gestures; walking blocks picks until walkDone()
   let ambientNext = 0;
@@ -40,6 +41,15 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
   syncTimers(now());
 
   const reminder = (id) => cfg.reminders.find((r) => r.id === id);
+
+  // Called whenever the active reminder resolves: space out the next one and give waiting
+  // reminders a fresh polite wait (they may have been "waiting" the whole time the bubble was up).
+  function cleared(t) {
+    active = null;
+    restAmbient(t);
+    gapUntil = t + cfg.reminderGapSeconds * 1000;
+    for (const s of timers.values()) if (s.pendingSince !== null) s.pendingSince = t;
+  }
 
   function tickReminders(t, actions) {
     const quiet = inQuietHours(cfg.quietHours, new Date(t));
@@ -62,7 +72,7 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
         s.dueAt = s.nextDue;
       }
     }
-    if (active || quiet) return;
+    if (active || quiet || t < gapUntil) return;
     const pending = [...timers.entries()]
       .filter(([, s]) => s.pendingSince !== null)
       .sort((a, b) => a[1].dueAt - b[1].dueAt);
@@ -72,8 +82,11 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
         s.pendingSince = null;
         s.nextDue = t + r.everyMinutes * MIN; // restarted again by ack/snooze
         active = { id, shownAt: t, escCount: 0 };
-        walking = true; // renderer must call walkDone() for every walk action
-        actions.push({ type: 'walk' });
+        // Only one walk at a time: if an ambient walk is under way the reminder just waits for it.
+        if (!walking) {
+          walking = true; // renderer must call walkDone() for every walk action
+          actions.push({ type: 'walk' });
+        }
         actions.push({
           type: 'say',
           reminderId: id,
@@ -105,14 +118,13 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
 
   function tickActive(t, actions) {
     const r = reminder(active.id);
-    if (!r) { active = null; return; } // removed from config while showing
+    if (!r) { cleared(t); actions.push({ type: 'hideBubble' }); return; } // removed from config while showing
     const dt = t - active.shownAt;
     // escalate: null (escalate:false) never re-says, but still gives up at the default 180 s
     const esc = r.escalate ?? { afterSeconds: Infinity, gestures: [], giveUpAfterSeconds: 180 };
     if (dt >= esc.giveUpAfterSeconds * 1000) {
       timers.set(r.id, schedule(r, t));
-      active = null;
-      restAmbient(t);
+      cleared(t);
       actions.push({ type: 'hideBubble' });
       if (r.escalate) actions.push({ type: 'gesture', name: resolveGesture(av, 'sleep') });
       return;
@@ -140,9 +152,9 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
   const ack = () => {
     if (!active) return [];
     const r = reminder(active.id);
+    if (!r) { cleared(now()); return [{ type: 'hideBubble' }]; } // removed while showing
     timers.set(r.id, schedule(r, now()));
-    active = null;
-    restAmbient(now());
+    cleared(now());
     return [{ type: 'hideBubble' }, { type: 'gesture', name: resolveGesture(av, 'happy') }];
   };
 
@@ -161,11 +173,12 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
     snooze() {
       if (!active) return [];
       const r = reminder(active.id);
-      const s = schedule(r, now());
-      s.nextDue = now() + r.snoozeMinutes * MIN;
-      timers.set(r.id, s);
-      active = null;
-      restAmbient(now());
+      if (r) {
+        const s = schedule(r, now());
+        s.nextDue = now() + r.snoozeMinutes * MIN;
+        timers.set(r.id, s);
+      }
+      cleared(now());
       return [{ type: 'hideBubble' }];
     },
     click() {
@@ -180,7 +193,8 @@ export function createEngine({ config, avatar, now, rand, idleSeconds }) {
       paused = { since: t, until: minutes === null ? null : t + minutes * MIN };
       const out = [{ type: 'hide' }];
       if (active) { // drop the shown reminder; it restarts a full interval after resume
-        timers.set(active.id, schedule(reminder(active.id), t));
+        const r = reminder(active.id);
+        if (r) timers.set(r.id, schedule(r, t));
         active = null;
         out.unshift({ type: 'hideBubble' });
       }

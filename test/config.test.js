@@ -58,3 +58,21 @@ test('loadConfigText keeps previous config on bad JSON', () => {
   assert.equal(res.errors.length, 1);
   assert.equal(loadConfigText('{bad', null).config.reminders.length, 0);
 });
+
+// Review fixes
+test('malformed quietHours is dropped with an error instead of breaking every tick', () => {
+  for (const q of [{ from: '20:00' }, '20:00-08:00', { from: 'x', to: 'y' }]) {
+    const { config, errors } = normalizeConfig({ quietHours: q, reminders: [] });
+    assert.equal(config.quietHours, null);
+    assert.equal(errors.length, 1);
+  }
+  assert.deepEqual(normalizeConfig({ quietHours: { from: '9:00', to: '17:30' }, reminders: [] }).errors, []);
+});
+
+test('reminderGapSeconds defaults to 60', () => {
+  assert.equal(normalizeConfig({}).config.reminderGapSeconds, 60);
+});
+
+test('pickMessage falls back to any non-empty list when the avatar has none and there is no default', () => {
+  assert.equal(pickMessage({ messages: { cat: ['meow'] } }, 'spirit', () => 0), 'meow');
+});
