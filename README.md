@@ -15,7 +15,7 @@ cargo test --manifest-path src-tauri/Cargo.toml --lib   # Rust tests
 
 ## Where your files live
 
-`%APPDATA%\desktop-buddy\` holds `config.json` and `avatars/`. They are copied from `defaults/` on first run and never overwritten, so edit them there. Saving `config.json` reloads it within a second. The tray menu has Open config, Reload config, pause, avatar switching and a Start at login toggle.
+`%APPDATA%\deskmate\` holds `config.json` and `avatars/`. They are copied from `defaults/` on first run and never overwritten, so edit them there. Saving `config.json` reloads it within a second. The tray menu has Open config, Reload config, pause, avatar switching and a Start at login toggle.
 
 ## Config
 

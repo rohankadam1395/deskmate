@@ -57,7 +57,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![set_hit_rects, data_dir, read_config, list_avatars, idle_seconds])
         .setup(|app| {
             // Data dir: %APPDATA%\desktop-buddy, seeded from bundled defaults/ (never overwritten).
-            let data = app.path().data_dir()?.join("desktop-buddy");
+            let base = app.path().data_dir()?;
+            let data = base.join("deskmate");
+            let _ = data::migrate_legacy(&base.join("desktop-buddy"), &data); // app was renamed from "desktop-buddy"
             let first_run = !data.join("config.json").exists();
             let defaults = app
                 .path()
