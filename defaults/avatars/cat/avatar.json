@@ -1,0 +1,118 @@
+{
+  "name": "Black cat",
+  "size": 96,
+  "states": {
+    "idle": {
+      "frames": [
+        "idle1.svg",
+        "idle2.svg"
+      ],
+      "fps": 1,
+      "loop": true
+    },
+    "walk": {
+      "frames": [
+        "walk1.svg",
+        "walk2.svg"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "sleep": {
+      "frames": [
+        "sleep1.svg",
+        "sleep2.svg"
+      ],
+      "fps": 1,
+      "loop": true
+    },
+    "yawn": {
+      "frames": [
+        "yawn1.svg",
+        "yawn2.svg",
+        "yawn1.svg",
+        "yawn2.svg"
+      ],
+      "fps": 2,
+      "loop": false
+    },
+    "groom": {
+      "frames": [
+        "groom1.svg",
+        "groom2.svg",
+        "groom1.svg",
+        "groom2.svg",
+        "groom1.svg",
+        "groom2.svg",
+        "groom1.svg",
+        "groom2.svg"
+      ],
+      "fps": 3,
+      "loop": false
+    },
+    "smirk": {
+      "frames": [
+        "smirk1.svg",
+        "smirk1.svg",
+        "smirk1.svg",
+        "smirk1.svg"
+      ],
+      "fps": 2,
+      "loop": false
+    },
+    "ignore": {
+      "frames": [
+        "ignore1.svg",
+        "ignore1.svg",
+        "ignore1.svg",
+        "ignore1.svg",
+        "ignore1.svg",
+        "ignore1.svg"
+      ],
+      "fps": 2,
+      "loop": false
+    },
+    "play": {
+      "frames": [
+        "play1.svg",
+        "play2.svg",
+        "play1.svg",
+        "play2.svg",
+        "play1.svg",
+        "play2.svg",
+        "play1.svg",
+        "play2.svg"
+      ],
+      "fps": 4,
+      "loop": false
+    },
+    "demand": {
+      "frames": [
+        "demand1.svg",
+        "demand2.svg"
+      ],
+      "fps": 3,
+      "loop": true
+    },
+    "happy": {
+      "frames": [
+        "happy1.svg",
+        "happy2.svg",
+        "happy1.svg",
+        "happy2.svg",
+        "happy1.svg",
+        "happy2.svg"
+      ],
+      "fps": 3,
+      "loop": false
+    }
+  },
+  "ambient": {
+    "sleep": 3,
+    "yawn": 2,
+    "groom": 2,
+    "smirk": 1,
+    "ignore": 2,
+    "play": 2
+  }
+}

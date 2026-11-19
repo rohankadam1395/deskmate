@@ -1,0 +1,77 @@
+{
+  "avatar": "cat",
+  "quietHours": {
+    "from": "20:00",
+    "to": "08:00"
+  },
+  "idleResetMinutes": 5,
+  "politeIdleSeconds": 5,
+  "politeMaxWaitSeconds": 120,
+  "reminders": [
+    {
+      "id": "water",
+      "everyMinutes": 45,
+      "gesture": "demand",
+      "snoozeMinutes": 10,
+      "messages": {
+        "cat": [
+          "Oi. Water. Now.",
+          "Your plant drinks more than you do.",
+          "Hydrate, human. I am not asking twice. (I am.)"
+        ],
+        "spirit": [
+          "Time for a little drink!",
+          "Water break? I will wait right here."
+        ],
+        "default": [
+          "Time to drink some water."
+        ]
+      },
+      "escalate": {
+        "afterSeconds": 60,
+        "gestures": [
+          "demand",
+          "play"
+        ],
+        "giveUpAfterSeconds": 240
+      }
+    },
+    {
+      "id": "move",
+      "everyMinutes": 50,
+      "gesture": "yawn",
+      "resetOnIdle": true,
+      "messages": {
+        "cat": [
+          "You've been sat there ages. Stretch. Walk. Go.",
+          "Even I got up, and I sleep 16 hours a day."
+        ],
+        "spirit": [
+          "Let us stretch our legs together!",
+          "You have been sitting a long while. A little walk?"
+        ],
+        "default": [
+          "Time to get up and move."
+        ]
+      }
+    },
+    {
+      "id": "blink",
+      "everyMinutes": 20,
+      "gesture": "smirk",
+      "messages": [
+        "Blink. I am watching.",
+        "Blink! Your eyes will thank you."
+      ]
+    },
+    {
+      "id": "lookaway",
+      "everyMinutes": 20,
+      "gesture": "ignore",
+      "messages": [
+        "Look away for 20 seconds. Pick something far away.",
+        "Eyes off the screen for a moment. Look out of the window!"
+      ]
+    }
+  ]
+}

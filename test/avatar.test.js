@@ -31,3 +31,23 @@ test('empty frames throws', () => {
   j.states.idle.frames = [];
   assert.throws(() => parseAvatar('cat', j), /idle/);
 });
+
+// Shipped starter avatars
+import { readFileSync, existsSync } from 'node:fs';
+import { normalizeConfig } from '../renderer/config.js';
+
+for (const id of ['cat', 'spirit']) {
+  test(`shipped avatar "${id}" parses, frames exist, ambient keys are states`, () => {
+    const dir = `defaults/avatars/${id}`;
+    const json = JSON.parse(readFileSync(`${dir}/avatar.json`, 'utf8'));
+    const a = parseAvatar(id, json);
+    for (const s of Object.values(a.states)) for (const f of s.frames) assert.ok(existsSync(`${dir}/${f}`), `${dir}/${f}`);
+    for (const k of Object.keys(a.ambient)) assert.ok(a.states[k], `ambient "${k}" is not a state`);
+  });
+}
+
+test('shipped default config normalizes with no errors', () => {
+  const { config, errors } = normalizeConfig(JSON.parse(readFileSync('defaults/config.json', 'utf8')));
+  assert.deepEqual(errors, []);
+  assert.deepEqual(config.reminders.map((r) => r.id), ['water', 'move', 'blink', 'lookaway']);
+});
